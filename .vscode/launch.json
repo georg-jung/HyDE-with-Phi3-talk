@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "C#: BlazorSearch.Web",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}\\BlazorSearch.Web\\BlazorSearch.Web.csproj",
+        },
+        {
+            "name": "C#: CorpusEmbedder",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}\\CorpusEmbedder\\CorpusEmbedder.csproj",
+        }
+    ]
+}

@@ -1,0 +1,172 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using System.Numerics.Tensors
+@using System.Text
+@using Markdig
+
+@inject Phi3 phi
+@inject Embedder embedder
+@inject List<Embedding> embs
+
+<PageTitle>HyDE with Phi-3.5</PageTitle>
+
+<h1 class="fs-3">Semantic Search</h1>
+
+<EditForm Model="searchQuery" FormName="SearchForm" OnValidSubmit="Submit" class="col-md-8 col-lg-6">
+    <div class="mb-3">
+        <label for="qinput" class="form-label">Query</label>
+        <InputText class="form-control" id="qinput" placeholder="E.g. Finding Memory Leaks" @bind-Value="searchQuery" />
+    </div>
+
+    <button class="btn btn-primary mb-3" type="submit">Search!</button>
+</EditForm>
+
+<div class="mb-4">
+    @if (working) 
+    {
+        <div class="alert alert-info my-3" role="alert">
+            <div class="d-flex flex-row align-items-center">
+                <div class="spinner-border me-3" role="status">
+                </div>
+                <div class="me-3">
+                    Creating Hypothetical document...
+                </div>
+                @if (hypotheticalDocument is not null && hypotheticalDocument.Length > 64) 
+                {
+                    <div class="text-muted">
+                        @hypotheticalDocument.Substring(hypotheticalDocument.Length - 1 - 64, 64)
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (hypotheticalDocument is not null)
+    {
+        <button class="btn btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+            Show hypothetical document
+        </button>
+        <div class="collapse" id="collapseExample">
+            <div class="card card-body my-3">
+                @(new MarkupString(Markdown.ToHtml(hypotheticalDocument)))
+            </div>
+        </div>
+    }
+</div>
+
+@if (results.Count != 0)
+{
+    <ul class="ms-0 ps-0">
+        @foreach (var res in results)
+        {
+            var path = res.Embedding.Key.FilePath;
+            var link = path switch {
+                { } when path.StartsWith("D:/docs/dotnet-docs/docs") => path.Replace("\\", "/").Replace(@"D:/docs/dotnet-docs/docs/", "https://learn.microsoft.com/en-us/dotnet/"),
+                { } when path.StartsWith("D:/docs/ef/entity-framework/") => path.Replace("\\", "/").Replace(@"D:/docs/ef/entity-framework/", "https://learn.microsoft.com/en-us/ef/"),
+                { } when path.StartsWith("D:/docs/aspnetcore/aspnetcore/") => path.Replace("\\", "/").Replace(@"D:/docs/aspnetcore/aspnetcore/", "https://learn.microsoft.com/en-us/aspnet/core/"),
+                { } when path.StartsWith("D:/docs/npgsql/conceptual/Npgsql") => path.Replace("\\", "/").Replace(@"D:/docs/npgsql/conceptual/Npgsql", "https://www.npgsql.org/doc"),
+                { } when path.StartsWith("D:/docs/npgsql/conceptual/EFCore.PG") => path.Replace("\\", "/").Replace(@"D:/docs/npgsql/conceptual/EFCore.PG", "https://www.npgsql.org/efcore"),
+                _ => null,
+            };
+            if (link?.StartsWith("https://www.npgsql.org") == true && link?.EndsWith(".md") == true)
+            {
+                link = link.Substring(0, link.Length - ".md".Length) + ".html";
+            }
+            if (link?.EndsWith("/index.md") == true) 
+            {
+                link = link.Substring(0, link.Length - "index.md".Length);
+            }
+            if (link?.EndsWith(".md") == true) 
+            {
+                link = link.Substring(0, link.Length - ".md".Length) + "/";
+            }
+            var content = File.ReadAllText(path!);
+            var relevantPart = res.Embedding.Key.LastTokenizedWordStartIndex is int end 
+                ? content.Substring(res.Embedding.Key.Offset, end - res.Embedding.Key.Offset)
+                : content.Substring(res.Embedding.Key.Offset);
+            var (title, fullHtml) = MarkdownHelper.Parse(content);
+            var (_, relevantHtml) = MarkdownHelper.Parse(relevantPart);
+            @*<li>
+                <h5>@(title ?? res.Embedding.Key.FilePath)</h5>
+                <p>
+                    @(new MarkupString(relevantHtml))
+                </p>
+                <p>Similarity: @res.Similarity</p>
+            </li>*@
+            <li class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <div class="d-flex flex-row align-items-center">
+                        <h5 class="m-0">
+                            @if (link is null) 
+                            {
+                                <span>@(title ?? path)</span>
+                            }
+                            else 
+                            {
+                                <a href="@link" target="_blank">@(title ?? path)</a>
+                            }                        
+                        </h5>
+                        @if (res.Embedding.Key.Offset is int offset && offset > 0) 
+                        {
+                            <em class="text-muted small ms-3">from char @offset</em>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="search-result-content text-muted overflow-hidden" style="max-height: 150px;">
+                        <p class="small">@(new MarkupString(relevantHtml))</p>
+                    </div>
+                    <div class="text-end small">Similarity: @($"{res.Similarity:n2}")</div>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+
+@code {
+    private string searchQuery = "";
+    private string? hypotheticalDocument = null;
+    private List<(float Similarity, Embedding Embedding)> results = [];
+    private bool working = false;
+    
+    private async Task Submit()
+    {
+        results = [];
+        hypotheticalDocument = null;
+
+        var sb = new StringBuilder();
+        working = true;
+        var task = Task.Run(() => phi.GenerateDocs(searchQuery, sb));
+        while (!task.IsCompleted) 
+        {
+            await Task.Delay(100);
+            hypotheticalDocument = sb.ToString();
+            StateHasChanged();
+        }
+        await task;
+        working = false;
+        hypotheticalDocument = sb.ToString();
+        
+        var queryEmbedding = await embedder.Embed($"Represent this sentence for searching relevant passages: " + searchQuery);
+        var hydEmbedding = await embedder.Embed(hypotheticalDocument);
+        
+        IEnumerable<(float Similarity, Embedding Embedding)> GetSimilarities()
+        {
+            foreach (var e in embs)
+            {
+                var sim = TensorPrimitives.CosineSimilarity(e.Vector, hydEmbedding);
+                yield return (Similarity: sim, Embedding: e);
+            }
+        }
+
+        results = GetSimilarities()
+            .OrderByDescending(x => x.Similarity).Take(32).ToList();
+        StateHasChanged();
+    }
+
+    private void ResultChanged(object? sender, EventArgs e)
+    {
+        _ = this.InvokeAsync(() => StateHasChanged());
+    }
+}
