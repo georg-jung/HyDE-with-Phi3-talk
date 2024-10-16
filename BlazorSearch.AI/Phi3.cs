@@ -7,7 +7,7 @@ public class Phi3
 {
     const string ModelDir = @"D:\hf\Phi-3.5-mini-instruct-onnx\cuda\cuda-int4-awq-block-128";
 
-    const string PromptTemplate2 = @"<|system|>
+    const string AlternativePromptTemplate = @"<|system|>
 You write concise technical documentation articles covering a topic and it's context.
 NEVER write more than 100 words.
 Skip introductory stuff, target an expert audience.
@@ -49,6 +49,7 @@ You MUST NOT write more than 100 words in total.
 
     public void GenerateDocs(string topic, StringBuilder output)
     {
+        //output.Append($"Represent this sentence for searching relevant passages: {topic}");
         var prompt = string.Format(PromptTemplate, topic);
         
         var sequences = tokenizer.Encode(prompt);
@@ -67,4 +68,6 @@ You MUST NOT write more than 100 words in total.
             output.Append(part);
         }
     }
+
+    // ToDo: implement IDisposable
 }

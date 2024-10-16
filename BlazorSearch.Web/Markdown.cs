@@ -5,7 +5,6 @@ using Markdig.Syntax;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 public static class MarkdownHelper
 {

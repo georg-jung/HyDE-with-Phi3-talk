@@ -148,20 +148,7 @@
         working = false;
         hypotheticalDocument = sb.ToString();
         
-        var queryEmbedding = await embedder.Embed($"Represent this sentence for searching relevant passages: " + searchQuery);
-        var hydEmbedding = await embedder.Embed(hypotheticalDocument);
-        
-        IEnumerable<(float Similarity, Embedding Embedding)> GetSimilarities()
-        {
-            foreach (var e in embs)
-            {
-                var sim = TensorPrimitives.CosineSimilarity(e.Vector, hydEmbedding);
-                yield return (Similarity: sim, Embedding: e);
-            }
-        }
-
-        results = GetSimilarities()
-            .OrderByDescending(x => x.Similarity).Take(32).ToList();
+        results = await embedder.GetSearchResults(embs, hypotheticalDocument);
         StateHasChanged();
     }
 
