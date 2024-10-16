@@ -12,12 +12,12 @@ public class Embedder
     const string ModelVocabPath = "D:/hf/bge-small-en-v1.5/vocab.txt";
 
     private readonly BertTokenizer _bertTokenizer = new();
-    private readonly Microsoft.ML.OnnxRuntime.SessionOptions _sessionOptions;
+    private readonly SessionOptions _sessionOptions;
     private readonly InferenceSession _session;
 
     public Embedder() 
     {
-        _sessionOptions = Microsoft.ML.OnnxRuntime.SessionOptions.MakeSessionOptionWithCudaProvider();
+        _sessionOptions = SessionOptions.MakeSessionOptionWithCudaProvider();
         _session = new InferenceSession(ModelOnnxPath, _sessionOptions);
         using var sr = File.OpenText(ModelVocabPath);
         _bertTokenizer.LoadVocabulary(sr, convertInputToLowercase: true);

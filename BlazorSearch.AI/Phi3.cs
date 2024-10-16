@@ -67,38 +67,4 @@ You MUST NOT write more than 100 words in total.
             output.Append(part);
         }
     }
-
-    public string GenerateDocs2(string topic) 
-    {
-        var prompt = string.Format(PromptTemplate, topic);
-        
-        using var generatorParams = new GeneratorParams(model);
-        var sequences = tokenizer.Encode(prompt);
-
-        generatorParams.SetSearchOption("max_length", 2048);
-        generatorParams.SetInputSequences(sequences);
-        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
-
-        using var tokenizerStream = tokenizer.CreateStream();
-        using var generator = new Generator(model, generatorParams);
-        StringBuilder stringBuilder = new();
-        while (!generator.IsDone())
-        {
-            string part;
-
-            generator.ComputeLogits();
-            generator.GenerateNextToken();
-            part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
-            stringBuilder.Append(part);
-            var currentText = stringBuilder.ToString();
-            if (currentText.Contains("<|end|>", StringComparison.Ordinal)
-                || currentText.Contains("<|user|>", StringComparison.Ordinal)
-                || currentText.Contains("<|system|>", StringComparison.Ordinal))
-            {
-                break;
-            }
-        }
-
-        return stringBuilder.ToString();
-    }
 }
