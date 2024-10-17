@@ -2,7 +2,7 @@
 
 > The code in this repository is not production ready but demonstrates the concepts.
 
-This repository contains a simple semantic search Blazor application leveraging [Hypothetical Document Embeddings](https://arxiv.org/abs/2212.10496).
+This repository contains a simple semantic search Blazor application leveraging [Hypothetical Document Embeddings](https://arxiv.org/abs/2212.10496). Slides (german) [are available too](slides.pdf).
 
 ![Screenshot](screenshot.png)
 
