@@ -43,30 +43,12 @@ You MUST NOT write more than 100 words in total.
 
     public Phi3() 
     {
-        model = new Model(ModelDir);
-        tokenizer = new Tokenizer(model);
+
     }
 
     public void GenerateDocs(string topic, StringBuilder output)
     {
-        //output.Append($"Represent this sentence for searching relevant passages: {topic}");
-        var prompt = string.Format(PromptTemplate, topic);
-        
-        var sequences = tokenizer.Encode(prompt);
-        using var generatorParams = new GeneratorParams(model);
-        generatorParams.SetSearchOption("max_length", 2048);
-        generatorParams.SetInputSequences(sequences);
-        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
-        
-        using var tokenizerStream = tokenizer.CreateStream();
-        using var generator = new Generator(model, generatorParams);
-        while (!generator.IsDone())
-        {
-            generator.ComputeLogits();
-            generator.GenerateNextToken();
-            var part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
-            output.Append(part);
-        }
+        output.Append($"Represent this sentence for searching relevant passages: {topic}");
     }
 
     // ToDo: implement IDisposable
