@@ -148,8 +148,15 @@
         working = false;
         hypotheticalDocument = sb.ToString();
         
-        results = await embedder.GetSearchResults(embs, hypotheticalDocument);
+        results = await GetSearchResults(hypotheticalDocument);
         StateHasChanged();
+    }
+
+    private async Task<List<(float Similarity, Embedding Embedding)>> GetSearchResults(string query, int results = 32) 
+    {
+        var queryVector = await embedder.Embed(query);
+        return Embedder.EnumerateSimilarities(embs, queryVector)
+            .OrderByDescending(x => x.Similarity).Take(results).ToList();
     }
 
     private void ResultChanged(object? sender, EventArgs e)

@@ -18,15 +18,13 @@ public class Embedder
 
     public Embedder() 
     {
-
+        _sessionOptions = SessionOptions.MakeSessionOptionWithCudaProvider();
+        _session = new InferenceSession(ModelOnnxPath, _sessionOptions);
+        using var sr = File.OpenText(ModelVocabPath);
+        _bertTokenizer.LoadVocabulary(sr, convertInputToLowercase: true);
     }
 
     public static IEnumerable<(float Similarity, Embedding Embedding)> EnumerateSimilarities(List<Embedding> corpus, float[] queryVector)
-    {
-
-    }
-
-    public async Task<List<(float Similarity, Embedding Embedding)>> GetSearchResults(List<Embedding> corpus, string query, int results = 32) 
     {
 
     }
